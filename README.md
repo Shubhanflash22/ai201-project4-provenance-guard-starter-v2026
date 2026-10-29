@@ -117,7 +117,10 @@ Response receives all of the above and adds the JSON the caller sees: content_id
 **Where it lives:** `scoring.py::combine_signals`
 
 **A case where my two signals split, and what my rule does with it:**
-[PLACEHOLDER, replace with real scores from Milestone 4.] A plainly written human paragraph (short sentences, common words) is the likely split. Signal one reads it as very predictable and scores it about 0.85. Signal two sees uneven sentence lengths and scores it about 0.30. The plain average is 0.575, which is already unsure, but the signals differ by 0.55, so the guard pulls the score further toward the middle, to about 0.54. The writer sees the "unsure" label instead of an accusation. Without the guard, a slightly different pair of scores (for example 0.95 and 0.45) could average to 0.70 and call a real writer AI.
+**A case where my two signals split, and what my rule does with it:**
+I wrote a text that keeps AI-style wording but changes its shape: one very short sentence, then one very long, comma-heavy sentence, then another short one ("Short answer: yes. The implementation of the proposed framework requires careful consideration..."). Signal one scored it 0.7773 because the words are very predictable. Signal two scored it 0.1787 because the sentence lengths and punctuation look human. The gap is 0.60, over my 0.40 limit, so the guard fired: the plain average of 0.478 became 0.489, which is "unsure". The label would have been "unsure" even without the guard, so here it only nudged the score by 0.011. The guard matters most when the signals split and the average lands far from the middle.
+
+**Where the rule does not help:** when both signals agree and are both wrong. A plainly written paragraph I wrote in short sentences scored 0.83 and 0.71 (combined 0.77, "ai"), and 6 of my 13 GRE practice essays came back "ai" (combined 0.57 to 0.75, none "human") because both signals read formal, evenly paced writing as machine-like. The gap in those cases was under 0.20, so the guard never fired. I haven't changed the weights for this, because these essays are the test set for my false-positive criterion in the next unit.
 
 ---
 

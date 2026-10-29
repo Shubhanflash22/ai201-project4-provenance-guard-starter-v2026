@@ -31,6 +31,8 @@ from flask import Flask, jsonify, request
 import audit
 import config
 import detector
+import scoring
+import stylometry
 
 app = Flask(__name__)
 
@@ -243,11 +245,12 @@ def submit():
             "message": "The detector model could not be loaded.",
         }), 503
 
-    # Signal two, confidence and label are still placeholders (Milestones 4 and 5).
-    guess = "unsure"
-    confidence = 0.5
-    label = "PLACEHOLDER"
-    style_score = None
+    # STEP 4 (Milestone 4): signal two, then combine.
+    style_score = stylometry.style_signal(text)
+    combined = scoring.combine_signals(model_score, style_score)
+
+    # The label text is still a placeholder until Milestone 5.
+    guess, label = scoring.score_to_label(combined)
 
     audit.log_decision(
         content_id=content_id,
@@ -255,7 +258,7 @@ def submit():
         guess=guess,
         model_score=model_score,
         style_score=style_score,
-        combined_score=confidence,
+        combined_score=combined,
         label=label,
         status="decided",
     )
@@ -263,7 +266,7 @@ def submit():
     return jsonify({
         "content_id": content_id,
         "guess": guess,
-        "confidence": confidence,
+        "confidence": combined,
         "label": label,
         "model_score": model_score,
         "style_score": style_score,

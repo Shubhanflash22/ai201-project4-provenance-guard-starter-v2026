@@ -57,6 +57,12 @@ DETECTOR_MAX_TOKENS = 400
 WEIGHT_MODEL_SIGNAL = 0.5
 WEIGHT_STYLE_SIGNAL = 0.5
 
+# Disagreement guard: if the two signals differ by more than this gap, the
+# combined score is pulled toward 0.5 ("unsure"). PULL is the fraction of its
+# distance from 0.5 that the score keeps (0.5 = pull it halfway back).
+DISAGREEMENT_GAP = 0.40
+DISAGREEMENT_PULL = 0.5
+
 
 # ─── Thresholds (Milestone 5) ────────────────────────────────────────────────
 # Where one label becomes another. Scores run 0.0 (confidently human) to 1.0
