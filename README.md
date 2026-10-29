@@ -38,6 +38,14 @@
 
 <!-- The path a submission takes, from arriving to the label a reader sees.
      Six or seven steps — this is the trace you wrote in Milestone 1. -->
+Route (/submit in app.py) receives a POST request with JSON (text and creator_id) and adds a unique content_id for this submission.
+Input check receives the raw JSON and adds a yes/no on whether text is usable (present, not empty, not enormous). If it says no, nothing else runs, and the service jumps to the final response with a 400 and “please enter some text”.
+Signal one (detector.py, the model signal) receives the text and adds a score from 0 to 1 for how predictable it is to a language model. Higher means more AI-like.
+Signal two (stylometry.py, the style signal) receives the same text and adds a score from 0 to 1 for its shape, which is sentence-length variety, word variety and punctuation. Higher means more AI-like.
+Combine (scoring.py::combine_signals) receives the two scores and adds one combined score from 0 (confidently human) to 1 (confidently AI).
+Label (scoring.py::score_to_label) receives the combined score and adds two things: a short guess (ai, human or unsure) and a plain-English sentence a reader sees.
+Log (audit.py) receives content_id, creator_id, the guess, both signal scores, the combined score, the label and the status. It adds one permanent line in logs/audit.jsonl, so the decision can be reconstructed later and an appeal can find it.
+Response receives all of the above and adds the JSON the caller sees: content_id, guess, confidence, label, model_score and style_score.
 
 
 
@@ -59,6 +67,12 @@
 
 **What it can't see:**
 
+**What it measures:** How predictable the text is to a language model (gpt2 running on my own machine). The model’s surprise is called perplexity. Low perplexity (easy to predict) becomes a high score, and the score runs from 0 (human-like) to 1 (AI-like).
+
+**Why that might differ between human and AI writing:** An AI writes by repeatedly choosing a likely next word, so its text tends to be easy for another model to predict. Human writing wanders more, with unusual word choices, abrupt turns and specific details that a model doesn’t expect.
+
+**What it can't see:** The difference between predictable and AI-written. A person writing plainly with common words in short sentences can score as “AI” as strongly as real AI does. That includes a second-language writer sticking to safe vocabulary, a younger writer, and anyone writing simply on purpose. The reverse also happens: dense, ornate human prose full of rare words can score as human even when a model wrote it. It also reads only the first 400 tokens (about 300 words), so anything later in a long submission is invisible to it.
+
 ### Signal two — the style signal
 
 **What it measures:**
@@ -66,6 +80,12 @@
 **Why that might differ between human and AI writing:**
 
 **What it can't see:**
+
+**What it measures:**The shape of the text, without understanding any of it. It combines three things into one 0–1 score: how much sentence length varies, how much of the vocabulary repeats (unique words divided by total words), and how much punctuation there is and how varied it is. Higher means more AI-like.
+
+**Why that might differ between human and AI writing:** AI text tends toward even, mid-length sentences and a narrower, more repetitive vocabulary. Human writing is lumpier, with a three-word sentence next to a forty-word one, and more variety in punctuation such as dashes and semicolons.
+
+**What it can't see:** Meaning. It has no idea what the text says, so anything that changes the shape without changing the substance fools it. Someone can add typos (which look like extra vocabulary variety), chop long sentences into uneven pieces, or paste in a quotation, and AI text starts to look human. In the other direction, a real writer who naturally writes in even, regular sentences can be wrongly pushed toward AI. Very short texts also give it too little to measure, and vocabulary variety falls as text gets longer, so text length alone can distort the score.
 
 ### The combining rule
 
@@ -83,7 +103,21 @@
 
 **A case where my two signals split, and what my rule does with it:**
 
+### The combining rule
 
+**The rule:** Start with a plain average of the two signals, so each one counts equally. Then check whether the two signals strongly disagree. If they differ by more than 0.40, don't trust the average. Pull it halfway back toward 0.5, which means "unsure". Two methods disagreeing is itself a sign we don't know, and a wrong accusation costs a real writer far more than a missed AI text costs the site.
+
+**The numbers:**
+- combined = 0.5 × model_score + 0.5 × style_score (weights in `config.py`)
+- Disagreement guard: if |model_score − style_score| > 0.40, then
+  combined = 0.5 + (combined − 0.5) × 0.5
+- Labels use the thresholds in `config.py`: below 0.35 is high-confidence human, 0.35 to 0.65 is unsure, above 0.65 is high-confidence AI.
+- These values are a first draft and will be checked against my four calibration inputs in Milestone 4.
+
+**Where it lives:** `scoring.py::combine_signals`
+
+**A case where my two signals split, and what my rule does with it:**
+[PLACEHOLDER, replace with real scores from Milestone 4.] A plainly written human paragraph (short sentences, common words) is the likely split. Signal one reads it as very predictable and scores it about 0.85. Signal two sees uneven sentence lengths and scores it about 0.30. The plain average is 0.575, which is already unsure, but the signals differ by 0.55, so the guard pulls the score further toward the middle, to about 0.54. The writer sees the "unsure" label instead of an accusation. Without the guard, a slightly different pair of scores (for example 0.95 and 0.45) could average to 0.70 and call a real writer AI.
 
 ---
 
