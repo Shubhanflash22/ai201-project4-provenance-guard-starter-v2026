@@ -31,6 +31,7 @@ from flask import Flask, jsonify, request
 import audit
 import config
 import detector
+import phrases
 import scoring
 import stylometry
 
@@ -246,8 +247,11 @@ def submit():
         }), 503
 
     # STEP 4 (Milestone 4): signal two, then combine.
+    # style_score = stylometry.style_signal(text)
+    # combined = scoring.combine_signals(model_score, style_score)
     style_score = stylometry.style_signal(text)
-    combined = scoring.combine_signals(model_score, style_score)
+    phrase_score = phrases.phrase_signal(text)
+    combined = scoring.combine_signals(model_score, style_score, phrase_score)
 
     # The label text is still a placeholder until Milestone 5.
     guess, label = scoring.score_to_label(combined)
@@ -258,6 +262,7 @@ def submit():
         guess=guess,
         model_score=model_score,
         style_score=style_score,
+        phrase_score=phrase_score,
         combined_score=combined,
         label=label,
         status="decided",
@@ -270,6 +275,7 @@ def submit():
         "label": label,
         "model_score": model_score,
         "style_score": style_score,
+        "phrase_score": phrase_score,
     })
 
 @app.post("/appeal")

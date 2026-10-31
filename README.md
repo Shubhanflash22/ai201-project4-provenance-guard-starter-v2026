@@ -42,7 +42,9 @@ Route (/submit in app.py) receives a POST request with JSON (text and creator_id
 Input check receives the raw JSON and adds a yes/no on whether text is usable (present, not empty, not enormous). If it says no, nothing else runs, and the service jumps to the final response with a 400 and “please enter some text”.
 Signal one (detector.py, the model signal) receives the text and adds a score from 0 to 1 for how predictable it is to a language model. Higher means more AI-like.
 Signal two (stylometry.py, the style signal) receives the same text and adds a score from 0 to 1 for its shape, which is sentence-length variety, word variety and punctuation. Higher means more AI-like.
-Combine (scoring.py::combine_signals) receives the two scores and adds one combined score from 0 (confidently human) to 1 (confidently AI).
+Signal three (phrases.py, the phrase signal) receives the same text and adds a score from 0.5 to 1.0 for how many stock formal phrases it uses
+<!-- Combine (scoring.py::combine_signals) receives the two scores and adds one combined score from 0 (confidently human) to 1 (confidently AI). -->
+Combine (scoring.py::combine_signals) receives the three scores and adds one combined score from 0 (confidently human) to 1 (confidently AI).
 Label (scoring.py::score_to_label) receives the combined score and adds two things: a short guess (ai, human or unsure) and a plain-English sentence a reader sees.
 Log (audit.py) receives content_id, creator_id, the guess, both signal scores, the combined score, the label and the status. It adds one permanent line in logs/audit.jsonl, so the decision can be reconstructed later and an appeal can find it.
 Response receives all of the above and adds the JSON the caller sees: content_id, guess, confidence, label, model_score and style_score.
@@ -87,6 +89,14 @@ Response receives all of the above and adds the JSON the caller sees: content_id
 
 **What it can't see:** Meaning. It has no idea what the text says, so anything that changes the shape without changing the substance fools it. Someone can add typos (which look like extra vocabulary variety), chop long sentences into uneven pieces, or paste in a quotation, and AI text starts to look human. In the other direction, a real writer who naturally writes in even, regular sentences can be wrongly pushed toward AI. Very short texts also give it too little to measure, and vocabulary variety falls as text gets longer, so text length alone can distort the score.
 
+### Signal three — the phrase signal (stretch)
+
+**What it measures:** How often the text uses stock formal phrases such as "it is important to note", "furthermore", "a wide variety of" and "plays a crucial role" (24 phrases, listed in `phrases.py`). Phrases per 100 words are turned into a score from 0.5 to 1.0. Finding no stock phrases gives 0.5, meaning "no opinion".
+
+**Why that might differ between human and AI writing:** AI-style text leans on the same transition and filler phrases again and again. It measures which phrases are used, not how predictable the text is (signal one) or how it is shaped (signal two).
+
+**What it can't see:** It can only add suspicion, never clear anyone, because plenty of AI text avoids these phrases. Anyone can defeat it by deleting them, and formal human writers use "furthermore" and "moreover" naturally. It also finds nothing in plain AI text that avoids stock phrases.
+
 ### The combining rule
 
 <!-- Write the rule in words, then give the numbers. What happens when the two
@@ -101,9 +111,7 @@ Response receives all of the above and adds the JSON the caller sees: content_id
 <!-- ⚠️ The grader checks your code against that line. If your rule lives
      somewhere else, say where. -->
 
-**A case where my two signals split, and what my rule does with it:**
-
-### The combining rule
+<!-- **A case where my two signals split, and what my rule does with it:**
 
 **The rule:** Start with a plain average of the two signals, so each one counts equally. Then check whether the two signals strongly disagree. If they differ by more than 0.40, don't trust the average. Pull it halfway back toward 0.5, which means "unsure". Two methods disagreeing is itself a sign we don't know, and a wrong accusation costs a real writer far more than a missed AI text costs the site.
 
@@ -112,7 +120,16 @@ Response receives all of the above and adds the JSON the caller sees: content_id
 - Disagreement guard: if |model_score − style_score| > 0.40, then
   combined = 0.5 + (combined − 0.5) × 0.5
 - Labels use the thresholds in `config.py`: below 0.35 is high-confidence human, 0.35 to 0.65 is unsure, above 0.65 is high-confidence AI.
-- These values are a first draft and will be checked against my four calibration inputs in Milestone 4.
+- These values are a first draft and will be checked against my four calibration inputs in Milestone 4. -->
+
+**The rule:** Take a weighted average of the three signals. Then check whether signals one and two strongly disagree. If they differ by more than 0.40, don't trust the average and pull it halfway back toward 0.5, which means "unsure". The guard ignores signal three because it can never go below 0.5. A wrong accusation costs a real writer far more than a missed AI text costs the site.
+
+**The numbers:**
+- combined = 0.4 × model_score + 0.4 × style_score + 0.2 × phrase_score (weights in `config.py`)
+- Disagreement guard: if |model_score − style_score| > 0.40, then combined = 0.5 + (combined − 0.5) × 0.5
+- Labels use the thresholds in `config.py`: 0.35 and below is high-confidence human, 0.35 to 0.65 is unsure, 0.65 and above is high-confidence AI.
+
+**How I weighted the three signals (stretch):** Signals one and two get equal weight (0.4 each) because I had no evidence either one is more reliable: on my 13 essays they leaned the same way. Signal three gets the smallest weight (0.2) for three reasons: it only runs from 0.5 to 1.0 so it can't clear anyone, it is easy to evade by deleting stock phrases, and formal human writers like me use them too. Adding it changed my 13 essays from 6 labeled "ai" to 4, but I don't read that as the phrase signal being smart. Part of it is dilution, because a neutral 0.5 baseline pulls every score a little toward the middle. It also nudged my toast paragraph from 0.2685 to 0.3148, closer to the AI side. It did not fix the main problem: none of my 13 real essays was labeled "human".
 
 **Where it lives:** `scoring.py::combine_signals`
 
@@ -278,10 +295,39 @@ $ curl.exe "http://127.0.0.1:5000/log?limit=3"
 
 ## Stretch Features
 
-I'm adding two stretch features:
+I added two stretch features:
 
-1. **`GET /content/<id>`**: returns one item's current status (`decided` or `under_review`), so a writer can check what happened to an appeal.
-2. **A third signal**, with a written note on how I weighted the three signals.
+1. **`GET /content/<id>`**: returns one item's current status (`decided` or `under_review`), whether it was appealed, and the original guess and label. A fake id returns a 404.
+2. **A third signal** (`phrases.py::phrase_signal`), with the weighting note in "The combining rule" above.
+
+**Evidence for `GET /content/<id>`:** I requested the item I had appealed:
+**Evidence for `GET /content/<id>`:** I requested the item I had appealed, then a fake id.
+
+```bash
+$ curl.exe http://127.0.0.1:5000/content/8db1f5a9-b657-41a7-a602-26ad7d011378
+```
+
+```json
+{
+  "appealed": true,
+  "confidence": 0.7585,
+  "content_id": "8db1f5a9-b657-41a7-a602-26ad7d011378",
+  "guess": "ai",
+  "label": "Our automated check thinks this may have been written with AI. It can be wrong, especially for writers who use short, plain sentences or a formal style. If you wrote it yourself, you can appeal and it will be marked for review by a person.",
+  "status": "under_review"
+}
+```
+
+```bash
+$ curl.exe http://127.0.0.1:5000/content/not-a-real-id
+```
+
+```json
+{
+  "error": "not_found",
+  "message": "We couldn't find a submission with that content_id."
+}
+```
 
 <!-- ═══════════════════════ UNIT 8 — THE TEST ═══════════════════════ -->
 

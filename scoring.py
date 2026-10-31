@@ -19,48 +19,75 @@ you claim, so that line should read `scoring.py::combine_signals`.
 import config
 
 
-def combine_signals(model_score: float, style_score: float) -> float:
+# def combine_signals(model_score: float, style_score: float) -> float:
+#     """
+#     Combine two 0–1 signals into one 0–1 score. ← TODO (Milestone 4)
+
+#     Both inputs point the same way: higher means more likely AI. Your output
+#     should too.
+
+#     Args:
+#         model_score: from `detector.model_signal` — how predictable the text is.
+#         style_score: from `stylometry.style_signal` — the shape of the text.
+
+#     Returns:
+#         A float from 0.0 (confidently human) to 1.0 (confidently AI).
+
+#     ⚠️ **Write the rule down before you code it, and put the numbers in your
+#     README.** A weighted average is the obvious choice and it is not the only
+#     one. Things worth thinking about:
+
+#       - **What happens when they disagree?** One signal at 0.9 and the other at
+#         0.1 averages to 0.5 — "unsure". Is that what you want? It might be
+#         exactly right: two methods disagreeing IS uncertainty. Or you might
+#         decide one signal is more trustworthy when they split.
+
+#       - **Which way do you want to be wrong?** Weighting toward the signal that
+#         reads more human means fewer false accusations and more AI text
+#         getting through. There's no weighting that avoids the trade.
+
+#       - Milestone 4 asks you to find a case where your two signals split and
+#         write it down. That case is what this rule exists to handle.
+
+#     The weights in config.py are placeholders. Change them, or ignore them and
+#     write a different rule.
+#     """
+#     # # TODO: replace this
+#     # return (
+#     #     config.WEIGHT_MODEL_SIGNAL * model_score
+#     #     + config.WEIGHT_STYLE_SIGNAL * style_score
+#     # )
+
+#     average = (
+#         config.WEIGHT_MODEL_SIGNAL * model_score
+#         + config.WEIGHT_STYLE_SIGNAL * style_score
+#     )
+#     if abs(model_score - style_score) > config.DISAGREEMENT_GAP:
+#         average = 0.5 + (average - 0.5) * config.DISAGREEMENT_PULL
+#     return round(min(max(average, 0.0), 1.0), 4)
+
+def combine_signals(
+    model_score: float, style_score: float, phrase_score: float = 0.5
+) -> float:
     """
-    Combine two 0–1 signals into one 0–1 score. ← TODO (Milestone 4)
+    Combine three 0-1 signals into one 0-1 score. Higher = more likely AI.
 
-    Both inputs point the same way: higher means more likely AI. Your output
-    should too.
-
-    Args:
-        model_score: from `detector.model_signal` — how predictable the text is.
-        style_score: from `stylometry.style_signal` — the shape of the text.
+    The rule:
+      1. Weighted average (weights in config.py: 0.4 model, 0.4 style, 0.2 phrase).
+         The phrase signal gets the smallest weight because it only runs from
+         0.5 to 1.0 (it can add suspicion but never clears anyone), is easy to
+         evade by deleting stock phrases, and formal human writers use them too.
+      2. Disagreement guard: if signals one and two differ by more than
+         config.DISAGREEMENT_GAP, the average is pulled back toward 0.5.
+         The guard ignores the phrase signal because it can't go below 0.5.
 
     Returns:
         A float from 0.0 (confidently human) to 1.0 (confidently AI).
-
-    ⚠️ **Write the rule down before you code it, and put the numbers in your
-    README.** A weighted average is the obvious choice and it is not the only
-    one. Things worth thinking about:
-
-      - **What happens when they disagree?** One signal at 0.9 and the other at
-        0.1 averages to 0.5 — "unsure". Is that what you want? It might be
-        exactly right: two methods disagreeing IS uncertainty. Or you might
-        decide one signal is more trustworthy when they split.
-
-      - **Which way do you want to be wrong?** Weighting toward the signal that
-        reads more human means fewer false accusations and more AI text
-        getting through. There's no weighting that avoids the trade.
-
-      - Milestone 4 asks you to find a case where your two signals split and
-        write it down. That case is what this rule exists to handle.
-
-    The weights in config.py are placeholders. Change them, or ignore them and
-    write a different rule.
     """
-    # # TODO: replace this
-    # return (
-    #     config.WEIGHT_MODEL_SIGNAL * model_score
-    #     + config.WEIGHT_STYLE_SIGNAL * style_score
-    # )
-
     average = (
         config.WEIGHT_MODEL_SIGNAL * model_score
         + config.WEIGHT_STYLE_SIGNAL * style_score
+        + config.WEIGHT_PHRASE_SIGNAL * phrase_score
     )
     if abs(model_score - style_score) > config.DISAGREEMENT_GAP:
         average = 0.5 + (average - 0.5) * config.DISAGREEMENT_PULL
