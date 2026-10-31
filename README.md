@@ -219,6 +219,73 @@ $ curl.exe -X POST http://127.0.0.1:5000/submit -H "Content-Type: application/js
 
 ```json
 {
+  "confidence": 0.8068,
+  "content_id": "2d300911-db98-41cd-a676-b579ad60ffe2",
+  "guess": "ai",
+  "label": "Our automated check thinks this may have been written with AI. It can be wrong, especially for writers who use short, plain sentences or a formal style. If you wrote it yourself, you can appeal and it will be marked for review by a person.",
+  "model_score": 0.8864,
+  "phrase_score": 1.0,
+  "style_score": 0.6306
+}
+```
+
+**An appeal**
+
+```bash
+$ curl.exe -X POST http://127.0.0.1:5000/appeal -H "Content-Type: application/json" -d "@appeal.json"
+```
+
+(`appeal.json` contained: `{"content_id": "2d300911-db98-41cd-a676-b579ad60ffe2", "reasoning": "I wrote this myself as part of a practice essay."}`)
+
+```json
+{
+  "content_id": "2d300911-db98-41cd-a676-b579ad60ffe2",
+  "message": "Your appeal has been recorded and this item is marked for review by a person.",
+  "status": "under_review"
+}
+```
+
+**What the log shows afterwards**
+
+```bash
+$ curl.exe "http://127.0.0.1:5000/log?limit=3"
+```
+
+```json
+{
+  "count": 2,
+  "entries": [
+    {
+      "combined_score": 0.8068,
+      "content_id": "2d300911-db98-41cd-a676-b579ad60ffe2",
+      "creator_id": "shubhan",
+      "guess": "ai",
+      "label": "Our automated check thinks this may have been written with AI. It can be wrong, especially for writers who use short, plain sentences or a formal style. If you wrote it yourself, you can appeal and it will be marked for review by a person.",
+      "model_score": 0.8864,
+      "phrase_score": 1.0,
+      "status": "decided",
+      "style_score": 0.6306,
+      "timestamp": "2026-10-31T19:14:53+00:00"
+    },
+    {
+      "content_id": "2d300911-db98-41cd-a676-b579ad60ffe2",
+      "creator_id": "shubhan",
+      "event": "appeal",
+      "reasoning": "I wrote this myself as part of a practice essay.",
+      "status": "under_review",
+      "timestamp": "2026-10-31T19:16:53+00:00"
+    }
+  ]
+}
+```
+<!-- **A submission**
+
+```bash
+$ curl.exe -X POST http://127.0.0.1:5000/submit -H "Content-Type: application/json" -d '{\"text\": \"The implementation of the proposed framework requires careful consideration of several key factors. First, it is important to note that the system must be able to handle a wide variety of different inputs. Additionally, the overall performance of the solution depends on a number of important variables.\", \"creator_id\": \"shubhan\"}'
+```
+
+```json
+{
   "confidence": 0.7585,
   "content_id": "8db1f5a9-b657-41a7-a602-26ad7d011378",
   "guess": "ai",
@@ -276,7 +343,7 @@ $ curl.exe "http://127.0.0.1:5000/log?limit=3"
   ]
 }
 ```
----
+--- -->
 
 ## How I Used AI
 
@@ -291,6 +358,18 @@ $ curl.exe "http://127.0.0.1:5000/log?limit=3"
 - *What I asked for:*
 - *What came back:*
 - *What I changed:*
+
+**Moment 1: a wrong prediction**
+
+- *What I asked for:* A text that would make my two signals split.
+- *What came back:* A choppy, comma-heavy rewrite of AI-style text, with a prediction that signal one would stay high.
+- *What I changed:* I ran it, and signal one dropped to 0.3871 instead of staying high, so the signals moved together and it wasn't a real split. I recorded it as a finding (reshaped AI text fooled both signals), and then tried a different text that did split them.
+
+**Moment 2: choosing and setting up the third signal (stretch)**
+
+- *What I asked for:* Help deciding which stretch features to take on and what a third signal should measure that my first two don't, and how to set it up properly.
+- *What came back:* A plan to declare the stretch features in my README before building them, and a proposal for a phrase signal that counts stock formal phrases ("it is important to note", "furthermore", "a wide variety of"). It scores 0.5 when no phrases are found, so it can add suspicion but never clear anyone, with a suggested weight of 0.2 for the new signal and 0.4 for each of the other two.
+- *What I changed:* I added the Stretch Features declaration to my README before starting. I built `phrases.py` and ran it alone on my texts before wiring it in. Then I ran all 13 of my own essays through the three-signal version instead of trusting the proposal: 6 of them labeled "ai" with two signals and 4 with three. I didn't take that as proof the new signal is good. In my weighting note I wrote that part of the drop is just the neutral 0.5 baseline pulling every score toward the middle, and I didn't tune the weights on my essays, because they are my test set for the next unit.
 
 
 ## Stretch Features
