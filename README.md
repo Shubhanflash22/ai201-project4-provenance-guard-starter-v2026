@@ -117,7 +117,6 @@ Response receives all of the above and adds the JSON the caller sees: content_id
 **Where it lives:** `scoring.py::combine_signals`
 
 **A case where my two signals split, and what my rule does with it:**
-**A case where my two signals split, and what my rule does with it:**
 I wrote a text that keeps AI-style wording but changes its shape: one very short sentence, then one very long, comma-heavy sentence, then another short one ("Short answer: yes. The implementation of the proposed framework requires careful consideration..."). Signal one scored it 0.7773 because the words are very predictable. Signal two scored it 0.1787 because the sentence lengths and punctuation look human. The gap is 0.60, over my 0.40 limit, so the guard fired: the plain average of 0.478 became 0.489, which is "unsure". The label would have been "unsure" even without the guard, so here it only nudged the score by 0.011. The guard matters most when the signals split and the average lands far from the middle.
 
 **Where the rule does not help:** when both signals agree and are both wrong. A plainly written paragraph I wrote in short sentences scored 0.83 and 0.71 (combined 0.77, "ai"), and 6 of my 13 GRE practice essays came back "ai" (combined 0.57 to 0.75, none "human") because both signals read formal, evenly paced writing as machine-like. The gap in those cases was under 0.20, so the guard never fired. I haven't changed the weights for this, because these essays are the test set for my false-positive criterion in the next unit.
@@ -205,6 +204,14 @@ $ curl "http://127.0.0.1:5000/log?limit=3"
 - *What I asked for:*
 - *What came back:*
 - *What I changed:*
+
+
+## Stretch Features
+
+I'm adding two stretch features:
+
+1. **`GET /content/<id>`**: returns one item's current status (`decided` or `under_review`), so a writer can check what happened to an appeal.
+2. **A third signal**, with a written note on how I weighted the three signals.
 
 <!-- ═══════════════════════ UNIT 8 — THE TEST ═══════════════════════ -->
 

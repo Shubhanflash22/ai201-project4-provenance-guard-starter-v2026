@@ -66,7 +66,21 @@ def combine_signals(model_score: float, style_score: float) -> float:
         average = 0.5 + (average - 0.5) * config.DISAGREEMENT_PULL
     return round(min(max(average, 0.0), 1.0), 4)
 
-
+LABELS = {
+    "human": "We think this was probably written by a person.",
+    "unsure": (
+        "We couldn't tell whether this was written by a person or by AI. "
+        "That isn't a finding against you, and nothing happens to your work "
+        "because of it. If you'd like a person to look at it, you can request "
+        "a review."
+    ),
+    "ai": (
+        "Our automated check thinks this may have been written with AI. It "
+        "can be wrong, especially for writers who use short, plain sentences "
+        "or a formal style. If you wrote it yourself, you can appeal and it "
+        "will be marked for review by a person."
+    ),
+}
 def score_to_label(score: float) -> tuple[str, str]:
     """
     Turn a score into a guess and the text a reader actually sees.
@@ -95,11 +109,10 @@ def score_to_label(score: float) -> tuple[str, str]:
     """
     # TODO: replace this — thresholds are in config.py
     if score >= config.AI_THRESHOLD:
-        return "ai", "PLACEHOLDER — write the high-confidence AI label."
+        return "ai", LABELS["ai"]
     if score <= config.HUMAN_THRESHOLD:
-        return "human", "PLACEHOLDER — write the high-confidence human label."
-    return "unsure", "PLACEHOLDER — write the unsure label."
-
+        return "human", LABELS["human"]
+    return "unsure", LABELS["unsure"]
 
 def label_ranges() -> list[tuple[str, str]]:
     """
