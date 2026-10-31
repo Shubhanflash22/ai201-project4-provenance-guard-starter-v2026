@@ -147,13 +147,13 @@ I wrote a text that keeps AI-style wording but changes its shape: one very short
 
      Write them for someone who has never heard the word "threshold". -->
 
-| Label | Score range | The exact text a reader sees |
+<!-- | Label | Score range | The exact text a reader sees |
 |---|---|---|
 | high-confidence human |  |  |
 | unsure |  |  |
 | high-confidence AI |  |  |
 
-**Why I worded the "unsure" one this way:**
+**Why I worded the "unsure" one this way:** -->
 <!-- It's the hardest of the three. It has to admit uncertainty without
      sounding like an accusation, because the person reading it may well have
      written every word themselves. -->
@@ -172,15 +172,15 @@ I wrote a text that keeps AI-style wording but changes its shape: one very short
 
 <!-- One submission and one appeal, pasted as text: the request, the response,
      and the log entries. -->
-
-**A submission**
+<!-- 
+**A submission** -->
 
 <!-- The response needs content_id, guess, confidence, label, AND both
      signal scores - model_score and style_score. Unit 8's tools read those
      two off the response, so leaving them out costs you next unit's
      diagnostics. -->
 
-```bash
+<!-- ```bash
 $ curl -X POST http://127.0.0.1:5000/submit \
   -H "Content-Type: application/json" \
   -d '{"text": "...", "creator_id": "..."}'
@@ -208,7 +208,7 @@ $ curl -X POST http://127.0.0.1:5000/appeal \
 $ curl "http://127.0.0.1:5000/log?limit=3"
 ```
 
-```json
+```json -->
 
 ```
 **A submission**
