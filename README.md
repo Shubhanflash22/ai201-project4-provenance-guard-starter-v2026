@@ -141,7 +141,13 @@ I wrote a text that keeps AI-style wording but changes its shape: one very short
      sounding like an accusation, because the person reading it may well have
      written every word themselves. -->
 
+| Label | Score range | The exact text a reader sees |
+|---|---|---|
+| high-confidence human | 0.00 – 0.35 | We think this was probably written by a person. |
+| unsure | 0.35 – 0.65 | We couldn't tell whether this was written by a person or by AI. That isn't a finding against you, and nothing happens to your work because of it. If you'd like a person to look at it, you can request a review. |
+| high-confidence AI | 0.65 – 1.00 | Our automated check thinks this may have been written with AI. It can be wrong, especially for writers who use short, plain sentences or a formal style. If you wrote it yourself, you can appeal and it will be marked for review by a person. |
 
+**Why I worded the "unsure" one this way:** It says plainly that the system doesn't know, and it says outright that this isn't an accusation, because the person reading it may have written every word. It gives one concrete next step, a review, so the writer isn't left stuck. I avoided words like "confidence" and "score", since a reader doesn't know what they mean. This label matters most in practice: 7 of my 13 real essays received it.
 
 ---
 
@@ -188,7 +194,71 @@ $ curl "http://127.0.0.1:5000/log?limit=3"
 ```json
 
 ```
+**A submission**
 
+```bash
+$ curl.exe -X POST http://127.0.0.1:5000/submit -H "Content-Type: application/json" -d '{\"text\": \"The implementation of the proposed framework requires careful consideration of several key factors. First, it is important to note that the system must be able to handle a wide variety of different inputs. Additionally, the overall performance of the solution depends on a number of important variables.\", \"creator_id\": \"shubhan\"}'
+```
+
+```json
+{
+  "confidence": 0.7585,
+  "content_id": "8db1f5a9-b657-41a7-a602-26ad7d011378",
+  "guess": "ai",
+  "label": "Our automated check thinks this may have been written with AI. It can be wrong, especially for writers who use short, plain sentences or a formal style. If you wrote it yourself, you can appeal and it will be marked for review by a person.",
+  "model_score": 0.8864,
+  "style_score": 0.6306
+}
+```
+
+**An appeal**
+
+```bash
+$ curl.exe -X POST http://127.0.0.1:5000/appeal -H "Content-Type: application/json" -d "@appeal.json"
+```
+
+(`appeal.json` contained: `{"content_id": "8db1f5a9-b657-41a7-a602-26ad7d011378", "reasoning": "I wrote this myself as part of a practice essay."}`)
+
+```json
+{
+  "content_id": "8db1f5a9-b657-41a7-a602-26ad7d011378",
+  "message": "Your appeal has been recorded and this item is marked for review by a person.",
+  "status": "under_review"
+}
+```
+
+**What the log shows afterwards**
+
+```bash
+$ curl.exe "http://127.0.0.1:5000/log?limit=3"
+```
+
+```json
+{
+  "count": 2,
+  "entries": [
+    {
+      "combined_score": 0.7585,
+      "content_id": "8db1f5a9-b657-41a7-a602-26ad7d011378",
+      "creator_id": "shubhan",
+      "guess": "ai",
+      "label": "Our automated check thinks this may have been written with AI. It can be wrong, especially for writers who use short, plain sentences or a formal style. If you wrote it yourself, you can appeal and it will be marked for review by a person.",
+      "model_score": 0.8864,
+      "status": "decided",
+      "style_score": 0.6306,
+      "timestamp": "2026-10-31T19:00:31+00:00"
+    },
+    {
+      "content_id": "8db1f5a9-b657-41a7-a602-26ad7d011378",
+      "creator_id": "shubhan",
+      "event": "appeal",
+      "reasoning": "I wrote this myself as part of a practice essay.",
+      "status": "under_review",
+      "timestamp": "2026-10-31T19:01:09+00:00"
+    }
+  ]
+}
+```
 ---
 
 ## How I Used AI
