@@ -371,7 +371,6 @@ $ curl.exe "http://127.0.0.1:5000/log?limit=3"
 - *What came back:* A plan to declare the stretch features in my README before building them, and a proposal for a phrase signal that counts stock formal phrases ("it is important to note", "furthermore", "a wide variety of"). It scores 0.5 when no phrases are found, so it can add suspicion but never clear anyone, with a suggested weight of 0.2 for the new signal and 0.4 for each of the other two.
 - *What I changed:* I added the Stretch Features declaration to my README before starting. I built `phrases.py` and ran it alone on my texts before wiring it in. Then I ran all 13 of my own essays through the three-signal version instead of trusting the proposal: 6 of them labeled "ai" with two signals and 4 with three. I didn't take that as proof the new signal is good. In my weighting note I wrote that part of the drop is just the neutral 0.5 baseline pulling every score toward the middle, and I didn't tune the weights on my essays, because they are my test set for the next unit.
 
-
 ## Stretch Features
 
 I added two stretch features:
