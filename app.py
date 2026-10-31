@@ -335,6 +335,26 @@ def appeal():
     })
 
 
+@app.get("/content/<content_id>")
+def get_content(content_id):
+    """One item's current status: the decision, and whether it was appealed."""
+    entries = audit.entries_for(content_id)
+    if not entries:
+        return jsonify({
+            "error": "not_found",
+            "message": "We couldn't find a submission with that content_id.",
+        }), 404
+
+    decision = entries[0]
+    latest = entries[-1]
+    return jsonify({
+        "content_id": content_id,
+        "status": latest.get("status"),
+        "guess": decision.get("guess"),
+        "confidence": decision.get("combined_score"),
+        "label": decision.get("label"),
+        "appealed": any(e.get("event") == "appeal" for e in entries),
+    })
 # ── Already works ─────────────────────────────────────────────────────────────
 
 @app.get("/log")
