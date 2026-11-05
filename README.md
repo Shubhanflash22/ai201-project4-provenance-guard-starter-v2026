@@ -63,11 +63,11 @@ Response receives all of the above and adds the JSON the caller sees: content_id
 
 ### Signal one — the model signal
 
-**What it measures:**
+<!-- **What it measures:**
 
 **Why that might differ between human and AI writing:**
 
-**What it can't see:**
+**What it can't see:** -->
 
 **What it measures:** How predictable the text is to a language model (gpt2 running on my own machine). The model’s surprise is called perplexity. Low perplexity (easy to predict) becomes a high score, and the score runs from 0 (human-like) to 1 (AI-like).
 
@@ -77,11 +77,11 @@ Response receives all of the above and adds the JSON the caller sees: content_id
 
 ### Signal two — the style signal
 
-**What it measures:**
+<!-- **What it measures:**
 
 **Why that might differ between human and AI writing:**
 
-**What it can't see:**
+**What it can't see:** -->
 
 **What it measures:**The shape of the text, without understanding any of it. It combines three things into one 0–1 score: how much sentence length varies, how much of the vocabulary repeats (unique words divided by total words), and how much punctuation there is and how varied it is. Higher means more AI-like.
 
@@ -102,11 +102,11 @@ Response receives all of the above and adds the JSON the caller sees: content_id
 <!-- Write the rule in words, then give the numbers. What happens when the two
      signals disagree? -->
 
-**The rule:**
+<!-- **The rule:**
 
 **The numbers:**
 
-**Where it lives:** `scoring.py::combine_signals`
+**Where it lives:** `scoring.py::combine_signals` -->
 
 <!-- ⚠️ The grader checks your code against that line. If your rule lives
      somewhere else, say where. -->
@@ -347,7 +347,7 @@ $ curl.exe "http://127.0.0.1:5000/log?limit=3"
 
 ## How I Used AI
 
-**Moment 1**
+<!-- **Moment 1**
 
 - *What I asked for:*
 - *What came back:*
@@ -357,7 +357,7 @@ $ curl.exe "http://127.0.0.1:5000/log?limit=3"
 
 - *What I asked for:*
 - *What came back:*
-- *What I changed:*
+- *What I changed:* -->
 
 **Moment 1: a wrong prediction**
 
@@ -412,6 +412,21 @@ $ curl.exe http://127.0.0.1:5000/content/not-a-real-id
 }
 ```
 
+3. **Per-creator rate limits**, with a note on what that changes. My limiter counts requests by `creator_id` and falls back to the caller's address only when there isn't a usable one (`app.py::rate_limit_key`). Evidence is below.
+
+**Evidence for per-creator limits.** My limiter counts requests by `creator_id` (`app.py::rate_limit_key`). Sending 15 submissions under one `creator_id` got blocked after 10 (see Rate Limiting above: `200` ×10, then `429` ×5). Sending the same 15 submissions under 15 different `creator_id`s with `rotate_creators.py`:
+
+```bash
+$ python rotate_creators.py
+```
+
+```
+200 200 200 200 200 200 200 200 200 200 200 200 200 200 200
+```
+
+**What counting per creator changes.** It protects people who share a connection: a household or a campus network is not treated as one caller, so one person's heavy use doesn't lock out the others. The cost is that the limit is only as strong as the identity behind it. `creator_id` is a string the caller chooses, so a script that makes up a new one for every request gets a fresh allowance each time and was never limited. If this ran for real, I would keep the per-creator limit and add a second limit per address, so rotating names from one machine still hits a ceiling.
+
+
 <!-- ═══════════════════════ UNIT 8 — THE TEST ═══════════════════════ -->
 
 ---
@@ -450,11 +465,7 @@ can look like one. -->
 
 <!-- **The run of status codes when I pushed past it:**
 
-<!-- python run_attacks.py --flood 15 -->
-
-```
-
-``` -->
+python run_attacks.py --flood 15 -->
 
 ---
 
@@ -692,8 +703,6 @@ whose work got caught by it:
 ---
 
 ## Run Log and Verdicts
-
-Run Log and Verdicts
 
 Five criteria, three trials each, run with python run_eval.py --label before (criteria 1, 2, 3 and 5; output in results/run_2026-11-04_1738_before.md) and python run_appeals.py --label before (criterion 4; output in results/appeals_2026-11-04_1738_before.md). Nothing was changed between trials.
 
