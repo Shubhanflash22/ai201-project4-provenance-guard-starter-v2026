@@ -671,13 +671,13 @@ FP03, "a non-native English speaker writing carefully". The service returned `gu
 
 
 
-**Ten audit log entries from the run**
+<!-- **Ten audit log entries from the run** -->
 
 <!-- Choose entries that show the interesting failures, not the ten easiest. -->
 
-```json
+<!-- ```json
 
-```
+``` -->
 
 <!--**The single worst outcome** — the one I'd least want to explain to a writer
 whose work got caught by it:
@@ -688,9 +688,341 @@ whose work got caught by it:
 
 ## Run Log and Verdicts
 
+Run Log and Verdicts
+
+Five criteria, three trials each, run with python run_eval.py --label before (criteria 1, 2, 3 and 5; output in results/run_2026-11-04_1738_before.md) and python run_appeals.py --label before (criterion 4; output in results/appeals_2026-11-04_1738_before.md). Nothing was changed between trials.
+
+Criterion	Target	Run 1	Run 2	Run 3	Verdict
+1. My own writing flagged as AI	≤ 1 of 10	3/10	3/10	3/10	MISSED
+2. AI and human text score apart	gap ≥ 0.4 in ≥ 4 of 5 pairs	0/5 pairs	0/5 pairs	0/5 pairs	MISSED
+3. All three labels reachable	3 of 3	3/3	3/3	3/3	MET
+4. Appeal changes status and is logged	5 of 5	5/5	5/5	5/5	MET
+5. Bad input returns 400, never 500	5 of 5	5/5	5/5	5/5	MET
+
+All three trials of every criterion came out identical, which is what I expected: neither signal has any randomness.
+
+How I decided each verdict
+
+Criterion 1, MISSED. The 10 pieces are the first 10 essays in my_writing.txt, chosen by position, not by score. Essays 1, 8 and 9 were labeled ai (confidence 0.7136, 0.6909, 0.6847) in every trial. 3 is above my limit of 1, so it misses in all three trials.
+Criterion 2, MISSED. I paired five unedited AI paragraphs with my own essays 1 to 5. The gap (AI confidence minus human confidence) was -0.0017, +0.0045, -0.0460, -0.0072, +0.0004 for pairs 1 to 5. None reaches 0.4, and the largest is under 0.005, so on this set the combined score does not separate the two at all (average 0.606 for AI, 0.616 for my essays).
+Criterion 3, MET. The five inputs produced ai, human, unsure, ai, unsure in every trial: all three labels within 5 submissions, well inside my limit of 20.
+Criterion 4, MET. In all three trials, all 5 appeals returned status under_review and a matching appeal entry appeared in GET /log for that content_id. Because run_eval.py can't send an appeal after a submission, I wrote run_appeals.py to do it.
+Criterion 5, MET. All five bad inputs (missing text, empty text, whitespace only, text over 10,000 characters, non-string text) returned status 400 in every trial, and none returned a 500. The error message in the body comes from app.py::submit, where every 400 branch returns a message.
+
+Criterion 2 in numbers (the same in all three trials):
+
+Pair	AI confidence	Human confidence	Gap	≥ 0.4?
+1	0.7119	0.7136	-0.0017	no
+2	0.6311	0.6266	+0.0045	no
+3	0.5416	0.5876	-0.0460	no
+4	0.5910	0.5982	-0.0072	no
+5	0.5566	0.5562	+0.0004	no
+
+Averages over the five pairs: model signal 0.837 (AI) vs 0.643 (human), style signal 0.427 (AI) vs 0.631 (human), combined 0.606 vs 0.616.
+
+Real output from one trial (trial 1 of each criterion), pasted from the results files. Produced by run_eval.py::main, which sends each text to POST /submit (app.py::submit, scoring in scoring.py::combine_signals). sent is the first 70 characters of what was sent.
+
+Criterion 1, my own writing:
+
+json
+[
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.7136,
+    "model_score": 0.7274,
+    "style_score": 0.7788,
+    "label": "Our automated check thinks this may have been written with AI. It can be wrong, especially for writers who use short, plain sentences or a formal style. If you wrote it yourself, you can appeal and it will be marked for review by a person.",
+    "sent": "I believe that having sound moral judgment and maintaining the respect"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.6266,
+    "model_score": 0.6693,
+    "style_score": 0.5883,
+    "label": "We couldn't tell whether this was written by a person or by AI. That isn't a finding against you, and nothing happens to your work because of it. If you'd like a person to look at it, you can request a review.",
+    "sent": "Although science and technology have managed to solve a substantial am"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5876,
+    "model_score": 0.5511,
+    "style_score": 0.6678,
+    "label": "We couldn't tell whether this was written by a person or by AI. That isn't a finding against you, and nothing happens to your work because of it. If you'd like a person to look at it, you can request a review.",
+    "sent": "Human beings are some of the most social creatures on planet earth. As"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5982,
+    "model_score": 0.6268,
+    "style_score": 0.6186,
+    "label": "We couldn't tell whether this was written by a person or by AI. That isn't a finding against you, and nothing happens to your work because of it. If you'd like a person to look at it, you can request a review.",
+    "sent": "Leadership is a skill that is developed with experience. However, it's"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5562,
+    "model_score": 0.6381,
+    "style_score": 0.5023,
+    "label": "We couldn't tell whether this was written by a person or by AI. That isn't a finding against you, and nothing happens to your work because of it. If you'd like a person to look at it, you can request a review.",
+    "sent": "Persistence and perseverance are the two hallmarks of the human race. "
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5845,
+    "model_score": 0.652,
+    "style_score": 0.5352,
+    "label": "We couldn't tell whether this was written by a person or by AI. That isn't a finding against you, and nothing happens to your work because of it. If you'd like a person to look at it, you can request a review.",
+    "sent": "As Plato said, \"Necessity is the mother of all inventions\". In today's"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.632,
+    "model_score": 0.6893,
+    "style_score": 0.6407,
+    "label": "We couldn't tell whether this was written by a person or by AI. That isn't a finding against you, and nothing happens to your work because of it. If you'd like a person to look at it, you can request a review.",
+    "sent": "The passage presents an argument that claims Paleo diets to be a cure "
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.6909,
+    "model_score": 0.742,
+    "style_score": 0.7044,
+    "label": "Our automated check thinks this may have been written with AI. It can be wrong, especially for writers who use short, plain sentences or a formal style. If you wrote it yourself, you can appeal and it will be marked for review by a person.",
+    "sent": "The arguments passed by the author in their argument to get the use of"
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.6847,
+    "model_score": 0.7185,
+    "style_score": 0.6723,
+    "label": "Our automated check thinks this may have been written with AI. It can be wrong, especially for writers who use short, plain sentences or a formal style. If you wrote it yourself, you can appeal and it will be marked for review by a person.",
+    "sent": "The central claim here is that the charities in need will receive what"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.6088,
+    "model_score": 0.6626,
+    "style_score": 0.5854,
+    "label": "We couldn't tell whether this was written by a person or by AI. That isn't a finding against you, and nothing happens to your work because of it. If you'd like a person to look at it, you can request a review.",
+    "sent": "Today's world is rapidly evolving as we made technological leaps that "
+  }
+]
+
+Criterion 2, score spread (odd positions are AI text, even positions are my essays; pair k is positions 2k-1 and 2k):
+
+json
+[
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.7119,
+    "model_score": 0.7911,
+    "style_score": 0.4886,
+    "label": "Our automated check thinks this may have been written with AI. It can be wrong, especially for writers who use short, plain sentences or a formal style. If you wrote it yourself, you can appeal and it will be marked for review by a person.",
+    "sent": "Remote work has become increasingly common in recent years, offering b"
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.7136,
+    "model_score": 0.7274,
+    "style_score": 0.7788,
+    "label": "Our automated check thinks this may have been written with AI. It can be wrong, especially for writers who use short, plain sentences or a formal style. If you wrote it yourself, you can appeal and it will be marked for review by a person.",
+    "sent": "I believe that having sound moral judgment and maintaining the respect"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.6311,
+    "model_score": 0.9152,
+    "style_score": 0.4905,
+    "label": "We couldn't tell whether this was written by a person or by AI. That isn't a finding against you, and nothing happens to your work because of it. If you'd like a person to look at it, you can request a review.",
+    "sent": "Renewable energy plays a crucial role in addressing the growing challe"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.6266,
+    "model_score": 0.6693,
+    "style_score": 0.5883,
+    "label": "We couldn't tell whether this was written by a person or by AI. That isn't a finding against you, and nothing happens to your work because of it. If you'd like a person to look at it, you can request a review.",
+    "sent": "Although science and technology have managed to solve a substantial am"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5416,
+    "model_score": 0.7712,
+    "style_score": 0.2864,
+    "label": "We couldn't tell whether this was written by a person or by AI. That isn't a finding against you, and nothing happens to your work because of it. If you'd like a person to look at it, you can request a review.",
+    "sent": "Social media has fundamentally transformed the way teenagers communica"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5876,
+    "model_score": 0.5511,
+    "style_score": 0.6678,
+    "label": "We couldn't tell whether this was written by a person or by AI. That isn't a finding against you, and nothing happens to your work because of it. If you'd like a person to look at it, you can request a review.",
+    "sent": "Human beings are some of the most social creatures on planet earth. As"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.591,
+    "model_score": 0.8588,
+    "style_score": 0.4381,
+    "label": "We couldn't tell whether this was written by a person or by AI. That isn't a finding against you, and nothing happens to your work because of it. If you'd like a person to look at it, you can request a review.",
+    "sent": "Getting enough sleep is one of the most important factors in maintaini"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5982,
+    "model_score": 0.6268,
+    "style_score": 0.6186,
+    "label": "We couldn't tell whether this was written by a person or by AI. That isn't a finding against you, and nothing happens to your work because of it. If you'd like a person to look at it, you can request a review.",
+    "sent": "Leadership is a skill that is developed with experience. However, it's"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5566,
+    "model_score": 0.8494,
+    "style_score": 0.4336,
+    "label": "We couldn't tell whether this was written by a person or by AI. That isn't a finding against you, and nothing happens to your work because of it. If you'd like a person to look at it, you can request a review.",
+    "sent": "Public transportation is an essential component of modern urban life, "
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5562,
+    "model_score": 0.6381,
+    "style_score": 0.5023,
+    "label": "We couldn't tell whether this was written by a person or by AI. That isn't a finding against you, and nothing happens to your work because of it. If you'd like a person to look at it, you can request a review.",
+    "sent": "Persistence and perseverance are the two hallmarks of the human race. "
+  }
+]
+
+Criterion 3, label coverage:
+
+json
+[
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.8068,
+    "model_score": 0.8864,
+    "style_score": 0.6306,
+    "label": "Our automated check thinks this may have been written with AI. It can be wrong, especially for writers who use short, plain sentences or a formal style. If you wrote it yourself, you can appeal and it will be marked for review by a person.",
+    "sent": "The implementation of the proposed framework requires careful consider"
+  },
+  {
+    "status": 200,
+    "guess": "human",
+    "confidence": 0.3148,
+    "model_score": 0.403,
+    "style_score": 0.1339,
+    "label": "We think this was probably written by a person.",
+    "sent": "Honestly I burned the toast again this morning, set off the smoke alar"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5412,
+    "model_score": 0.7773,
+    "style_score": 0.1787,
+    "label": "We couldn't tell whether this was written by a person or by AI. That isn't a finding against you, and nothing happens to your work because of it. If you'd like a person to look at it, you can request a review.",
+    "sent": "Short answer: yes. The implementation of the proposed framework requir"
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.7156,
+    "model_score": 0.8299,
+    "style_score": 0.7092,
+    "label": "Our automated check thinks this may have been written with AI. It can be wrong, especially for writers who use short, plain sentences or a formal style. If you wrote it yourself, you can appeal and it will be marked for review by a person.",
+    "sent": "I like my school. It is big. I have many friends. We play games at lun"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5636,
+    "model_score": 0.5965,
+    "style_score": 0.3125,
+    "label": "We couldn't tell whether this was written by a person or by AI. That isn't a finding against you, and nothing happens to your work because of it. If you'd like a person to look at it, you can request a review.",
+    "sent": "The implementation of the proposed framework requires careful considra"
+  }
+]
+
+Criterion 4, appeal path (produced by run_appeals.py::one_trial):
+
+PASTE_CRITERION_4_JSON_HERE
+
+Criterion 5, bad input:
+
+json
+[
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "sent": "{\"creator_id\": \"eval_bad_missing\"}"
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "sent": "(empty text)"
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "sent": "   "
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "sent": "word word word word word word word word word word word word word word "
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "sent": "{\"text\": 12345, \"creator_id\": \"eval_bad_notstring\"}"
+  }
+]
+
 <!-- Your five criteria across three trials. `run_eval.py --label before`. -->
 
-| Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
+<!-- | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
 | 1.  |  |  |  |  |  |
 | 2.  |  |  |  |  |  |
@@ -699,13 +1031,13 @@ whose work got caught by it:
 | 5.  |  |  |  |  |  |
 
 **Real output from one trial**, pasted as text, naming the file and function
-that produced it:
+that produced it: -->
 
-```json
+<!-- ```json
 
 ```
 
-**Diagnoses**
+**Diagnoses** -->
 
 <!-- For each miss AND each broken attack: the stage and the mechanism.
 
