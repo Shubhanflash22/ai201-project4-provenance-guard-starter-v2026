@@ -232,7 +232,7 @@ def submit():
     #         "message": "creator_id is required.",
     #     }), 400
 
-    # content_id = str(uuid.uuid4())
+    content_id = str(uuid.uuid4())
 
     # STEP 2: read the request and check it.
     MAX_TEXT_CHARS = 10_000  # matches my endpoint shape in criteria.md
