@@ -155,7 +155,7 @@ def health():
 # ── YOU BUILD THIS ────────────────────────────────────────────────────────────
 
 @app.post("/submit")
-# @limiter.limit(f"{config.RATE_LIMIT_PER_MINUTE}/minute;{config.RATE_LIMIT_PER_DAY}/day")
+@limiter.limit(f"{config.RATE_LIMIT_PER_MINUTE}/minute;{config.RATE_LIMIT_PER_DAY}/day")
 def submit():
     """
     Take a piece of text, decide about it, log the decision, answer.
@@ -204,10 +204,42 @@ def submit():
     a malformed input is one of the most common real failures there is.
     """
     # STEP 2: read the request and check it.
+    # MAX_TEXT_CHARS = 10_000  # matches my endpoint shape in criteria.md
+
+    # payload = request.get_json(silent=True)
+    # if not isinstance(payload, dict):
+    #     return jsonify({
+    #         "error": "invalid_input",
+    #         "message": "Send a JSON object with 'text' and 'creator_id'.",
+    #     }), 400
+
+    # text = payload.get("text")
+    # creator_id = payload.get("creator_id")
+
+    # if not isinstance(text, str) or not text.strip():
+    #     return jsonify({
+    #         "error": "invalid_input",
+    #         "message": "Please enter some text.",
+    #     }), 400
+    # if len(text) > MAX_TEXT_CHARS:
+    #     return jsonify({
+    #         "error": "invalid_input",
+    #         "message": f"Text is too long (limit {MAX_TEXT_CHARS} characters).",
+    #     }), 400
+    # if not isinstance(creator_id, str) or not creator_id.strip():
+    #     return jsonify({
+    #         "error": "invalid_input",
+    #         "message": "creator_id is required.",
+    #     }), 400
+
+    # content_id = str(uuid.uuid4())
+
+    # STEP 2: read the request and check it.
     MAX_TEXT_CHARS = 10_000  # matches my endpoint shape in criteria.md
 
     payload = request.get_json(silent=True)
     if not isinstance(payload, dict):
+        audit.log_rejection(creator_id="unknown", reason="body_not_json_object")
         return jsonify({
             "error": "invalid_input",
             "message": "Send a JSON object with 'text' and 'creator_id'.",
@@ -215,32 +247,43 @@ def submit():
 
     text = payload.get("text")
     creator_id = payload.get("creator_id")
+    who = creator_id if isinstance(creator_id, str) and creator_id.strip() else "unknown"
 
     if not isinstance(text, str) or not text.strip():
+        audit.log_rejection(creator_id=who, reason="text_missing_or_empty")
         return jsonify({
             "error": "invalid_input",
             "message": "Please enter some text.",
         }), 400
     if len(text) > MAX_TEXT_CHARS:
+        audit.log_rejection(creator_id=who, reason="text_too_long", length=len(text))
         return jsonify({
             "error": "invalid_input",
             "message": f"Text is too long (limit {MAX_TEXT_CHARS} characters).",
         }), 400
     if not isinstance(creator_id, str) or not creator_id.strip():
+        audit.log_rejection(creator_id="unknown", reason="creator_id_missing")
         return jsonify({
             "error": "invalid_input",
             "message": "creator_id is required.",
         }), 400
-
-    content_id = str(uuid.uuid4())
-
-        # STEP 3: signal one, the model signal.
+    # STEP 3: signal one, the model signal.
     try:
         model_score = detector.model_signal(text)
+    # except ValueError as exc:
+    #     # text too short for the model to score
+    #     return jsonify({"error": "invalid_input", "message": str(exc)}), 400
+    # except detector.DetectorUnavailable:
+    #     return jsonify({
+    #         "error": "detector_unavailable",
+    #         "message": "The detector model could not be loaded.",
+    #     }), 503
     except ValueError as exc:
         # text too short for the model to score
+        audit.log_rejection(creator_id=creator_id, reason="text_too_short")
         return jsonify({"error": "invalid_input", "message": str(exc)}), 400
     except detector.DetectorUnavailable:
+        audit.log_rejection(creator_id=creator_id, reason="detector_unavailable")
         return jsonify({
             "error": "detector_unavailable",
             "message": "The detector model could not be loaded.",

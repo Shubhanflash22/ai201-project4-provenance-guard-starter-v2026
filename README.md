@@ -413,7 +413,25 @@ $ curl.exe http://127.0.0.1:5000/content/not-a-real-id
 
 ## Rate Limiting
 
-**My limits:** ___ per minute, ___ per day
+**My limits:** 10 per minute, 120 per day
+
+**Why those numbers and not others:** I'm the realistic heavy user. I take about 8 to 10 tries on a draft (mostly fixing spelling and wording) and I work on 10 to 12 pieces at a time, so a hard day is roughly 80 to 120 submissions. 120 per day covers that without getting in my way. 10 per minute is far above what a person can reach, because each submission takes a second or two to score and I have to edit between tries, so only a script hits it. A script mapping my thresholds with hundreds of slightly different versions of one text runs into the cap within a minute, and the daily cap stops it from just waiting and starting again.
+
+**What a caller counts as:** The `creator_id` in the request, or the caller's address if there isn't a usable one (`app.py::rate_limit_key`). This means one name can't flood the service, but a script that changes `creator_id` on every request gets a fresh allowance each time, so my limit slows down a casual prober and not a determined one. Counting by address would catch that script but would treat everyone behind a shared connection, like one household, as one caller.
+
+**The run of status codes when I pushed past it:**
+
+```bash
+$ python run_attacks.py --flood 15
+```
+
+```
+200 200 200 200 200 200 200 200 200 200 429 429 429 429 429
+```
+
+5 of 15 were rate limited. The first 10 went through and the next 5 were rejected with a 429.
+
+<!-- **My limits:** ___ per minute, ___ per day
 
 **Why those numbers and not others:**
 <!-- Think about two people: a real writer submitting their own work a few
@@ -421,17 +439,17 @@ $ curl.exe http://127.0.0.1:5000/content/not-a-real-id
      thresholds. Your numbers have to be liveable for the first and hostile to
      the second. -->
 
-**What a caller counts as:** <!-- per address, or per creator_id? They fail
+<!-- **What a caller counts as:** <!-- per address, or per creator_id? They fail
 differently — one script can look like a thousand callers, and one household
 can look like one. -->
 
-**The run of status codes when I pushed past it:**
+<!-- **The run of status codes when I pushed past it:**
 
 <!-- python run_attacks.py --flood 15 -->
 
 ```
 
-```
+``` -->
 
 ---
 
