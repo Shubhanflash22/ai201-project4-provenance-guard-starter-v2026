@@ -378,7 +378,7 @@ $ curl.exe "http://127.0.0.1:5000/log?limit=3"
 
 ## Stretch Features
 
-I added two stretch features:
+I added four stretch features:
 
 1. **`GET /content/<id>`**: returns one item's current status (`decided` or `under_review`), whether it was appealed, and the original guess and label. A fake id returns a 404.
 2. **A third signal** (`phrases.py::phrase_signal`), with the weighting note in "The combining rule" above.
@@ -426,6 +426,7 @@ $ python rotate_creators.py
 
 **What counting per creator changes.** It protects people who share a connection: a household or a campus network is not treated as one caller, so one person's heavy use doesn't lock out the others. The cost is that the limit is only as strong as the identity behind it. `creator_id` is a string the caller chooses, so a script that makes up a new one for every request gets a fresh allowance each time and was never limited. If this ran for real, I would keep the per-creator limit and add a second limit per address, so rotating names from one machine still hits a ceiling.
 
+4. **A second improvement, measured the same way:** reject text with fewer than 10 letters before the signals run (fixes MF03 and MF04), compared against the first improvement's results.
 
 <!-- ═══════════════════════ UNIT 8 — THE TEST ═══════════════════════ -->
 
@@ -1191,13 +1192,49 @@ What it cost, which is the trade I knew I was making:
 
 ---
 
+### Second improvement (stretch)
+
+**What I changed:** I made the service refuse text with fewer than 10 letters before either signal runs. This is two small edits: `MIN_LETTERS = 10` in `config.py`, and a check in `app.py::submit` after the existing input checks that logs a rejection (reason `too_few_letters`) and returns a 400 with "Please enter some text with words in it." Letters are counted with `str.isalpha()`, which also counts letters in other scripts, so right-to-left and non-Latin writing still passes. It is measured against the "after" run of the first improvement (threshold 0.75), so that is the baseline, and nothing else changed between the two runs.
+
+**Which diagnosis pointed at it:** Diagnosis 4, non-text accepted as a submission. `app.py::submit` only rejected text that was missing, not a string, empty after `.strip()` or too long, so control characters (MF03) and punctuation-only text (MF04) reached signal one, which scored them 0.0 and 0.0112 and logged a "decision".
+
+**Result:** `python run_attacks.py --set attack_set\attack_set --label after2` (output in `results/attack_run_2026-11-05_1539_after2.md`) and `python run_eval.py --label after2` (`results/run_2026-11-05_1540_after2.md`). Comparing the two attack runs row by row, exactly three rows changed and everything else is identical, including every score:
+
+| ID | What it targets | After first improvement | After second improvement | Held / Broke |
+|---|---|---|---|---|
+| MF03 | text is control characters | 200, unsure (0.440) | 400 | BROKE → **HELD** |
+| MF04 | text is only punctuation | 200, unsure (0.402) | 400 | BROKE → **HELD** |
+| MF06 | text is emoji only | 200, unsure (0.599) | 400 | HELD → HELD (now refused instead of scored) |
+
+**Totals: 47 held, 9 broke out of 56** (after the first improvement: 45 held, 11 broke).
+
+| Family | Held before | Held after | Broke before | Broke after |
+|---|---|---|---|---|
+| evasion | 1 | 1 | 9 | 9 |
+| false_positive | 8 | 8 | 0 | 0 |
+| prompt_injection | 6 | 6 | 0 | 0 |
+| malformed (MF, odd text) | 6 | 8 | 2 | 0 |
+| malformed (RQ, bad request shape) | 12 | 12 | 0 | 0 |
+| flood_same_creator | 12 | 12 | 0 | 0 |
+
+My five criteria are unchanged: criterion 1 still 0 of 10, criterion 2 still 0 of 5 pairs (gaps identical to the earlier runs, largest +0.0045), criterion 3 still 3 of 3 labels, criterion 5 still 5 of 5 returning 400, in all three trials.
+
+**Did it help, and what did it cost:** It fixed what it was aimed at: the two non-text inputs that were wrongly broke, MF03 and MF04, are now refused like whitespace-only text is. What it costs:
+
+- **Short genuine text can now be refused.** Anything with fewer than 10 letters ("Yes, thank you." has 11, but "I am ok." has 5) gets a 400, where before it reached the signals. My shortest genuine attack, FP08, has enough letters and was not affected, but a real very short submission could be. I set 10 by judgment and did not tune it.
+- **It does not catch every non-prose input.** MF05, one very long word, still passes (it has plenty of letters) and signal one still scores it 0.9976; it stays "unsure" because signal two returns its neutral 0.5 for very short texts, which opens a 0.50 gap with signal one and triggers the disagreement guard (combined 0.5995). That is held by my marking rule but is still a weakness in signal one.
+- **MF06 (emoji only) is now refused** with a message asking for text with words in it, which is a better answer than scoring emoji, but a writer who really meant to submit symbols only would have to be told differently.
+
 ## What's Still Broken
 
-**11 attacks still broke, and one criterion is still missed.** For each, what I would do and why I stopped:
+<!-- **11 attacks still broke, and one criterion is still missed.**  -->
+**9 attacks still broke, and one criterion is still missed.**
+For each, what I would do and why I stopped:
 
 - **Criterion 2 (score spread), still missed.** Cause: signal two reads comma-heavy, short AI paragraphs as human (punctuation density 0.116 against 0.032 for my essays), and at equal weights that cancels signal one's separation. I would remove the punctuation measure from signal two or length-normalize it, and rebuild the pairs so both sides are about the same length. I stopped because this unit allows one change and I used it on the false positives, and because the pair set itself is partly a length confound (85-word paragraphs against 450-word essays), so I want to fix the test before I trust a fix to the signal.
 - **EV01 to EV09 (9 evasions), still broke.** Cause: a plain average lets one fooled signal decide the result. I would require both signals to agree before the service says "human", and check spelling before signal one reads the text, since typos pushed it to 0.1635. I stopped because that changes how every label is decided, so it needs its own before-and-after, and because any rule that makes "human" harder to reach also makes real writers wait longer for a clear label.
-- **MF03 and MF04 (control characters, punctuation only), still broke.** Cause: the route's validation. I would require a minimum number of letters before the signals run, and return a 400 like MF01 does. This is the cheapest fix on the list and the only one I am sure has no downside. I left it so the before and after runs stay comparable, and because I was told to make one change.
+<!-- - **MF03 and MF04 (control characters, punctuation only), still broke.** Cause: the route's validation. I would require a minimum number of letters before the signals run, and return a 400 like MF01 does. This is the cheapest fix on the list and the only one I am sure has no downside. I left it so the before and after runs stay comparable, and because I was told to make one change. -->
+- **MF03 and MF04 (control characters, punctuation only): fixed by the second improvement** (reject text with fewer than 10 letters). What remains is MF05, a very long single word, which passes the letter check and still scores 0.9976 on signal one; I would also require a minimum number of distinct words.
 - **My own formal writing still never gets a clear label.** None of my essays is labeled `ai` now, but none is labeled `human` either (scores 0.55 to 0.71 against a human line of 0.35). Fixing that means changing what signals one and two measure, which is a bigger job than a threshold.
 
 **The trade I'd make if this ran for real:**

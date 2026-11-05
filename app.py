@@ -244,7 +244,6 @@ def submit():
             "error": "invalid_input",
             "message": "Send a JSON object with 'text' and 'creator_id'.",
         }), 400
-
     text = payload.get("text")
     creator_id = payload.get("creator_id")
     who = creator_id if isinstance(creator_id, str) and creator_id.strip() else "unknown"
@@ -266,6 +265,14 @@ def submit():
         return jsonify({
             "error": "invalid_input",
             "message": "creator_id is required.",
+        }), 400
+
+    letters = sum(ch.isalpha() for ch in text)
+    if letters < config.MIN_LETTERS:
+        audit.log_rejection(creator_id=who, reason="too_few_letters", letters=letters)
+        return jsonify({
+            "error": "invalid_input",
+            "message": "Please enter some text with words in it.",
         }), 400
     # STEP 3: signal one, the model signal.
     try:

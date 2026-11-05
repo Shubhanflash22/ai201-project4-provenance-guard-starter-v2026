@@ -84,6 +84,9 @@ DISAGREEMENT_PULL = 0.5
 HUMAN_THRESHOLD = 0.35
 AI_THRESHOLD = 0.75
 
+# Text with fewer letters than this never reaches the signals.
+MIN_LETTERS = 10
+
 # ⚠️ One thing that catches people out in Milestone 5. A weighted average can
 # only land between its two inputs — so while `style_signal` is still the stub
 # returning 0.5, the combined score can never leave 0.25–0.75 no matter what
