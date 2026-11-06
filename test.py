@@ -109,7 +109,7 @@ def check_packages():
         return report(
             "FAIL",
             "requirements.txt",
-            f"Not found next to test.py. Run this from inside the starter repo folder.",
+            f"Not found next to test.py. Run this from inside the repo folder.",
         )
 
     missing, wrong = [], []
@@ -240,7 +240,7 @@ def check_service():
 
     if response.status_code != 200:
         return report("FAIL", "The service", f"/ping returned {response.status_code}")
-    report("PASS", "The service", "/ping answers — the starter works before you edit it")
+    report("PASS", "The service", "/ping answers — the service works")
 
 
 def main():
