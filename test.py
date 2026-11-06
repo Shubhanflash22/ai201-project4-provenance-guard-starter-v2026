@@ -2,19 +2,15 @@
 """
 AI201 environment check.
 
-Run this before every class:
-
     python test.py
 
-It checks the things that actually break: your Python version, your virtual
-environment, your pinned packages, whether the local model has been
-downloaded, and whether the starter service answers. It is the same file in
-every unit's starter repo — the checks adapt to whatever that unit's
+It checks the things that actually break: the Python version, the virtual
+environment, the pinned packages, whether the local model has been downloaded,
+and whether the service answers. The checks adapt to whatever this repo's
 requirements.txt pins.
 
-This pair needs no API key. Nothing here calls a hosted service.
-
-Nothing here touches your project code, and nothing here is graded.
+This project needs no API key. Nothing here calls a hosted service, and nothing
+here touches the project code.
 """
 
 import importlib
@@ -26,16 +22,16 @@ import shutil
 import sys
 from pathlib import Path
 
-# --- Course-wide pins -------------------------------------------------------
-# This pair has no hosted model and no API key. The one model it uses runs on
-# your machine and is named in config.py.
+# --- Pins -------------------------------------------------------------------
+# No hosted model and no API key. The one model used runs locally and is named
+# in config.py.
 
 MIN_PYTHON = (3, 11)
-MAX_PYTHON = (3, 14)  # exclusive — 3.14 breaks the pinned stack
+MAX_PYTHON = (3, 14)  # exclusive: 3.14 breaks the pinned stack
 MIN_DISK_GB = 9   # torch is most of it; the detector model adds ~550 MB
 MIN_RAM_GB = 4
 
-# Distribution name on PyPI -> module name you actually import.
+# Distribution name on PyPI -> module name actually imported.
 IMPORT_NAMES = {
     "python-dotenv": "dotenv",
     "google-genai": "google.genai",
@@ -190,7 +186,7 @@ def check_machine():
         report("PASS", "Memory", f"{ram:.1f} GB")
 
 
-# --- 4. What this pair actually runs ----------------------------------------
+# --- 4. What this project runs ----------------------------------------------
 
 def check_torch():
     """Signal one runs a model on this machine."""
@@ -202,7 +198,7 @@ def check_torch():
 
 
 def check_flask():
-    """The web service, and unit 8's rate limiter."""
+    """The web service, and its rate limiter."""
     try:
         import flask  # noqa: F401
     except ImportError as exc:
@@ -210,7 +206,7 @@ def check_flask():
     try:
         import flask_limiter  # noqa: F401
     except ImportError:
-        return report("WARN", "Flask", "flask-limiter missing — you need it in unit 8")
+        return report("WARN", "Flask", "flask-limiter missing — needed for rate limiting")
     report("PASS", "Flask", "flask and flask-limiter both import")
 
 
@@ -224,8 +220,7 @@ def check_detector_model():
     report(
         "WARN",
         "Detector model",
-        "Not downloaded yet (~550 MB). Run `python detector.py` once BEFORE\n"
-        "         class — downloading it during the session costs you the breakout.",
+        "Not downloaded yet (~550 MB). Run `python detector.py` once to download it.",
     )
 
 
@@ -264,14 +259,13 @@ def main():
           f"{len(warned)} to look at, {len(skipped)} skipped\n")
     if failed:
         print("Not ready yet. Fix the FAIL lines above, then run test.py again.")
-        print("Still stuck after one honest attempt? Post the whole output in the")
-        print("help channel — the day before class, not the morning of.\n")
+        print("Still stuck? Post the whole output in the help channel.\n")
         return 1
     if skipped:
         print("You're set for what's installed. The skipped checks are packages")
-        print("this unit's requirements.txt doesn't pin yet — that's expected.\n")
+        print("this repo's requirements.txt doesn't pin yet — that's expected.\n")
         return 0
-    print("You're set. See you in class.\n")
+    print("You're set.\n")
     return 0
 
 

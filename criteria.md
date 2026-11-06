@@ -1,7 +1,7 @@
 # Acceptance criteria: Provenance Guard
 
-Five criteria that say what "working" means for this service, written in unit 7
-**before** it was built. Each must hold across all three trials in unit 8.
+Five criteria that say what "working" means for this service, written
+**before** it was built. Each must hold across all three trials.
 
 ---
 

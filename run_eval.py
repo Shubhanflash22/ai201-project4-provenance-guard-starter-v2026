@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
 """
-Run your five criteria three times each.  <- UNIT 8, MILESTONE 3
+Run the five criteria three times each.
 
     python app.py                              # in one terminal
     python run_eval.py --label before          # in another
     python run_eval.py --label after
 
-The attack set tests what staff thought to test. This tests what *you* thought
-to test, and the two rarely overlap much. Both count.
+The attack set tests what staff thought to test. This tests what the criteria
+say, and the two rarely overlap much. Both count.
 
-Fill in `scenarios.py` first — that's where you say what each criterion needs
-run against it. A criterion about false positives needs your own writing. One
-about label coverage needs inputs across the score range.
+`scenarios.py` says what each criterion needs run against it. A criterion about
+false positives needs own writing. One about label coverage needs inputs across
+the score range.
 
-!! Three trials, and **your first signal runs a model, so identical input can
-score differently twice.** That's exactly why repeats matter here.
+Three trials, because the first signal runs a model, so identical input can
+score differently twice. That is why repeats matter here.
 
 This does the sending and the recording. It does not decide whether a trial
-passed — that depends on the criterion you wrote, so the Verdict column comes
-back blank.
+passed, since that depends on the criterion, so the Verdict column comes back
+blank.
 """
 
 import argparse
@@ -31,7 +31,7 @@ import config
 
 # Windows consoles often run a codepage that can't print every character in
 # this file's help text. Without this, `--help` ends in a UnicodeEncodeError
-# traceback instead of the help — which is a miserable first thing to hit.
+# traceback instead of the help.
 for _stream in (sys.stdout, sys.stderr):
     try:
         _stream.reconfigure(errors="replace")
@@ -85,7 +85,7 @@ def main():
     try:
         import scenarios
     except ImportError:
-        print("No scenarios.py found. Milestone 3 starts by filling it in.",
+        print("No scenarios.py found.",
               file=sys.stderr)
         sys.exit(1)
 
@@ -172,8 +172,7 @@ def write_report(rows, args):
         lines.append(f"| {name} |  | {' | '.join([' '] * n)} |  |")
 
     lines += ["", "---", "", "## What actually came back", "",
-              "Real output. Paste the relevant parts into your README — the rubric",
-              "asks for the actual JSON, not a description of it.", ""]
+              "Real output.", ""]
 
     for row in rows:
         scenario = row["scenario"]

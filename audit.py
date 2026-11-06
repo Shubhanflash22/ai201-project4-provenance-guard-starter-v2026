@@ -1,17 +1,15 @@
 """
 The audit log.
 
-Every decision your service makes gets written here as one JSON object per
-line. Not `print()` — a file you can read back.
+Every decision the service makes gets written here as one JSON object per line.
+It is a file that can be read back, not `print()`.
 
-The reason is next unit: you run an attack against this service, and **an
-attack you can't see in a log is an attack you can't diagnose.** An input that
-slipped past your detector leaves no other trace.
+An attack that can't be seen in a log can't be diagnosed: an input that slipped
+past the detector leaves no other trace.
 
-All nine fields the unit 8 rubric requires are in the entry shape from the
-start, even though unit 7 only fills some of them. That's deliberate — adding
-fields later means your early entries and your late ones have different shapes,
-and the one you most want to compare is the one from before the change.
+All nine required fields are in the entry shape from the start, even where only
+some are filled. Adding fields later means early and late entries have different
+shapes, and the one most worth comparing is the one from before a change.
 
     from audit import log_decision, read_entries
 
@@ -46,17 +44,16 @@ def log_decision(
     """
     Write one decision to the audit log.
 
-    The nine required fields, all present from unit 7 whether or not you can
-    fill them yet:
+        The nine required fields:
 
-        timestamp, content_id, creator_id, guess,
-        model_score, style_score, combined_score, label, status
+            timestamp, content_id, creator_id, guess,
+            model_score, style_score, combined_score, label, status
 
-    `status` moves over an item's life: `decided` when first judged,
-    `under_review` once the writer appeals.
+        `status` moves over an item's life: `decided` when first judged,
+        `under_review` once the writer appeals.
 
-    Anything extra you pass gets written too — useful for `rejected` entries in
-    unit 8, where there's no decision but you still want the trace.
+        Anything extra passed in gets written too, which is useful for `rejected`
+        entries, where there is no decision but the trace is still wanted.
     """
     entry = {
         "timestamp": _now(),
@@ -77,10 +74,10 @@ def log_appeal(content_id: str, creator_id: str, reasoning: str) -> dict:
     """
     Record an appeal beside the original decision.
 
-    This doesn't overwrite anything. The log is append-only, so the original
-    decision stays exactly where it was and the appeal sits after it — which is
-    the whole point of an audit log. Someone reading it later can see what was
-    decided, that it was challenged, and in what order.
+        This doesn't overwrite anything. The log is append-only, so the original
+        decision stays where it was and the appeal sits after it. Someone reading
+        it later can see what was decided, that it was challenged, and in what
+        order.
     """
     return _append({
         "timestamp": _now(),
@@ -94,13 +91,12 @@ def log_appeal(content_id: str, creator_id: str, reasoning: str) -> dict:
 
 def log_rejection(creator_id: str, reason: str, **extra) -> dict:
     """
-    Record a request that never became a decision — a rate-limit rejection or
-    an input your route refused.
+    Record a request that never became a decision: a rate-limit rejection or an
+        input the route refused.
 
-    ⚠️ Unit 8 asks for this explicitly, and the reason is worth holding onto:
-    **an attack that shows up only as an absence is one you'll never find.** A
-    thousand requests that got a 429 and left no trace look exactly like a
-    quiet afternoon.
+        An attack that shows up only as an absence is one that never gets found. A
+        thousand requests that got a 429 and left no trace look exactly like a quiet
+        afternoon.
     """
     return _append({
         "timestamp": _now(),

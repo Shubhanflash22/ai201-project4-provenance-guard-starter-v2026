@@ -1,52 +1,48 @@
 #!/usr/bin/env python3
 """
-Run the attack set against your service.  <- UNIT 8, MILESTONE 2
+Run the attack set against the service.
 
     python app.py                                   # in one terminal
     python run_attacks.py --set path/to/attack_set  # in another
 
     python run_attacks.py --set ... --label before
-    python run_attacks.py --set ... --label after   # after your improvement
+    python run_attacks.py --set ... --label after   # after a change
 
-To work one attack at a time — which is what the in-class follow-along does:
+To work one attack at a time:
 
     python run_attacks.py --set ... --id EV03 --show          # print it, send nothing
     python run_attacks.py --set ... --id EV03                 # send just that one
     python run_attacks.py --set ... --one-per-family --show   # one from each family
 
-`--show` prints the attack's text and a curl command you can paste, and sends
-nothing and writes nothing. It's for putting an attack on a screen and firing
-it by hand, so the class watches the request go out instead of watching a
-progress list scroll past.
+`--show` prints the attack's text and a curl command that can be pasted, and
+sends nothing and writes nothing. It is for firing an attack by hand and
+watching the request go out.
 
-And for Milestone 1, to prove your rate limit works:
+To check that the rate limit works:
 
     python run_attacks.py --flood 15
 
 That sends 15 submissions from ONE creator_id in a burst and prints the run of
-status codes, which is what your README's **Rate Limiting** section asks for.
+status codes.
 
 Every row in `attacks.csv` gets its own creator_id (`attacker_<id>`), so those
 attacks look like a crowd of different callers and never trip a limit. The one
 exception is the `flood_same_creator` family in the malformed-requests file,
-whose rows deliberately share a creator_id — those are the only attacks in the
-set that mean anything with limiting switched on, and this script warns you
-before the run if it's off.
+whose rows deliberately share a creator_id. Those are the only attacks in the
+set that mean anything with limiting switched on, and this script warns before
+the run if it is off.
 
-Sending the whole set by hand would eat the milestone, so this does the sending
-and the recording. What it does **not** do is decide whether an attack held or
-broke — that judgment is the milestone.
+This does the sending and the recording. It does **not** decide whether an
+attack held or broke: whether an evasion "worked" depends on where the
+thresholds are, so two different sets of bands will honestly reach different
+verdicts on the same input. The `targets` column says what each attack was going
+for; the verdict is filled in by hand.
 
-That judgment is yours, and it has to be: whether an evasion "worked" depends
-on where you put your thresholds, and two students with different bands will
-honestly reach different verdicts on the same input. The `targets` column says
-what each attack was going for; you say whether it got there.
+The one thing it decides itself is the unambiguous case. A 500, a connection
+drop, or an unhandled exception is **broke**: no threshold makes a crash
+acceptable.
 
-The one thing it does decide for you is the unambiguous case. A 500, a
-connection drop, or an unhandled exception is **broke** — no threshold makes a
-crash acceptable.
-
-Writes `results/attack_run_<date>.md`, which is what you paste into your README.
+Writes `results/attack_run_<date>.md`.
 """
 
 import argparse
@@ -60,7 +56,7 @@ import config
 
 # Windows consoles often run a codepage that can't print every character in
 # this file's help text. Without this, `--help` ends in a UnicodeEncodeError
-# traceback instead of the help — which is a miserable first thing to hit.
+# traceback instead of the help.
 for _stream in (sys.stdout, sys.stderr):
     try:
         _stream.reconfigure(errors="replace")
@@ -75,17 +71,17 @@ def load_attacks(folder: Path):
     """
     Read both attack files. Returns (attacks, problems).
 
-    A row that won't parse is skipped and reported rather than raising. One
-    stray comma in a file you didn't write should cost you that attack, not
-    every other attack in the set.
+        A row that won't parse is skipped and reported rather than raising. One
+        stray comma in a file should cost that attack, not every other attack in the
+        set.
 
-    `attacks_malformed_requests.csv` may carry two optional columns:
+        `attacks_malformed_requests.csv` may carry two optional columns:
 
-        send_as       `json` (default) parses raw_body and sends it as JSON.
-                      `raw` sends raw_body's bytes exactly as written — which
-                      is the only way to send JSON that doesn't parse, or an
-                      empty body.
-        content_type  what to claim it is. Defaults to application/json.
+            send_as       `json` (default) parses raw_body and sends it as JSON.
+                          `raw` sends raw_body's bytes exactly as written, which is
+                          the only way to send JSON that doesn't parse, or an empty
+                          body.
+            content_type  what to claim it is. Defaults to application/json.
     """
     attacks, problems = [], []
 
@@ -135,9 +131,8 @@ def send(url, attack, timeout):
     """
     One request. Returns (status_code, parsed_body_or_none, error_or_none).
 
-    A crash on the far end is a result, not a reason to stop — the stop rule
-    for this milestone is explicit that a service dying partway through is
-    something to record and keep going from.
+        A crash on the far end is a result, not a reason to stop: a service dying
+        partway through is recorded and the run continues.
     """
     import requests
 
@@ -165,10 +160,10 @@ def warn_about_rate_limits(attacks, health):
     """
     Some attacks only mean something against a limiter that's switched on.
 
-    Run those with rate limiting off and every one comes back `200`, which
-    reads exactly like the attack failing to get through — the most
-    misleading result this tool can produce, because it looks like a pass.
-    So say so before the run rather than after.
+        Run those with rate limiting off and every one comes back `200`, which reads
+        exactly like the attack failing to get through, the most misleading result
+        this tool can produce because it looks like a pass. So it says so before the
+        run rather than after.
     """
     needs_limits = sorted({a["family"] for a in attacks
                            if "flood" in a["family"]})
@@ -183,7 +178,7 @@ def warn_about_rate_limits(attacks, health):
     print("Those attacks will all come back 200 because nothing is counting "
           "them — which\nlooks like they were stopped, and is the opposite of "
           "what it means.", file=sys.stderr)
-    print("\nTurn the limiter on first (Milestone 1), then re-run.",
+    print("\nTurn the limiter on first, then re-run.",
           file=sys.stderr)
     print("!" * 60 + "\n", file=sys.stderr)
 
@@ -209,12 +204,11 @@ def select_attacks(attacks, args):
     """
     Narrow the set to what was asked for. Returns (attacks, complaint).
 
-    `--id` wins over `--family`, and `--one-per-family` takes the first attack
-    of each family in the order the files list them.
+        `--id` wins over `--family`, and `--one-per-family` takes the first attack of
+        each family in the order the files list them.
 
-    A complaint comes back as a message rather than an exception. Mistyping an
-    id at the front of a room should tell you the ids that exist, not print a
-    traceback over your slides.
+        A complaint comes back as a message rather than an exception, so a mistyped
+        id lists the ids that exist instead of printing a traceback.
     """
     if args.attack_id:
         wanted = args.attack_id.strip().lower()
@@ -247,11 +241,10 @@ def select_attacks(attacks, args):
 
 def curl_commands(url, attack):
     """
-    (bash, windows) — the same request, written for both shells.
+    (bash, windows): the same request, written for both shells.
 
-    RUNNING.md already says PowerShell needs `curl.exe` on one line with the
-    inner quotes backslashed, so print that variant too rather than making
-    half the room translate it live.
+        PowerShell needs `curl.exe` on one line with the inner quotes backslashed,
+        so that variant is printed too.
     """
     if "raw" in attack:
         body = attack["raw"]
@@ -286,8 +279,8 @@ def show_attacks(attacks, url):
     """
     Print the selected attacks instead of sending them.
 
-    This sends nothing and writes no report — the whole point is that you send
-    it yourself, in front of people, and they watch the response come back.
+        This sends nothing and writes no report; the request is sent by hand and the
+        response watched.
     """
     for attack in attacks:
         print("=" * 70)
@@ -343,12 +336,12 @@ def run_flood(args):
     """
     Send N submissions from one creator_id and report the status codes.
 
-    This is Milestone 1's evidence: a run of 200s followed by 429s. It lives
-    here rather than in a shell loop because a shell loop is a different
-    command on every operating system, and this one isn't.
+        Evidence that the limiter works: a run of 200s followed by 429s. It lives
+        here rather than in a shell loop because a shell loop is a different command
+        on every operating system.
 
-    If you get no 429 at all, the usual cause is that rate limiting is still
-    off — check `GET /health`, which reports it.
+        If there is no 429 at all, the usual cause is that rate limiting is still off;
+        `GET /health` reports it.
     """
     import requests
 
@@ -374,9 +367,8 @@ def run_flood(args):
     print(run)
     print(f"{'=' * 60}")
     if limited:
-        print(f"\n{limited} of {len(codes)} were rate limited. Paste the run above "
-              f"into your README\nunder **Rate Limiting**, and check GET /log "
-              f"recorded the rejections.")
+        print(f"\n{limited} of {len(codes)} were rate limited. Keep the run "
+              f"above\nand check GET /log recorded the rejections.")
     else:
         print("\nNo 429 at all. Either your limit is above "
               f"{len(codes)} a minute, or rate limiting\nis still off — "
@@ -403,7 +395,7 @@ def main():
                         help="folder holding attacks.csv")
     parser.add_argument("--flood", type=int, metavar="N",
                         help="skip the attack set: send N submissions from one "
-                             "creator_id and print the status codes (Milestone 1)")
+                             "creator_id and print the status codes")
     parser.add_argument("--creator", default="flood_tester",
                         help="who --flood submits as")
     parser.add_argument("--url", default=DEFAULT_URL)
@@ -427,7 +419,7 @@ def main():
 
     if not args.folder:
         print("Give me an attack set: --set path/to/folder\n"
-              "Or test your rate limit instead: --flood 15", file=sys.stderr)
+              "Or test the rate limit instead: --flood 15", file=sys.stderr)
         sys.exit(1)
 
     folder = Path(args.folder)
@@ -437,7 +429,7 @@ def main():
               f"SKIPPED:", file=sys.stderr)
         for problem in problems:
             print(f"  - {problem}", file=sys.stderr)
-        print("Say so in your write-up — a skipped row is a gap in your run.\n",
+        print("A skipped row is a gap in the run.\n",
               file=sys.stderr)
     if not attacks:
         print(f"No attack files found in {folder}.\n"
@@ -519,15 +511,15 @@ def write_report(rows, args):
         "- Service: `app.py::submit`",
         f"- {len(rows)} attacks · {dt.datetime.now().strftime('%Y-%m-%d %H:%M')}",
         f"- Auto-marked BROKE (5xx, crash, no response): **{broke}**",
-        f"- Left for you to judge: **{undecided}**",
+        f"- Left to judge by hand: **{undecided}**",
         "",
         "The Verdict column is blank where a script can't honestly decide. Whether",
-        "an evasion worked depends on where you put your thresholds — read the",
-        "`targets` column, look at what came back, and write HELD or BROKE yourself.",
+        "an evasion worked depends on where the thresholds are: read the `targets`",
+        "column, look at what came back, and write HELD or BROKE by hand.",
         "",
         "Each attack submits as creator_id `attacker_<id>`, and the content_id it",
-        "came back with is in the table — either one will match this run against your",
-        "audit log when you go looking for the ten entries to paste.",
+        "came back with is in the table; either one will match this run against the",
+        "audit log.",
         "",
         "| ID | Family | Targeting | Status | Content ID | Guess | Score | Verdict |",
         "|---|---|---|---|---|---|---|---|",
@@ -563,8 +555,7 @@ def write_report(rows, args):
         "",
         "## What came back",
         "",
-        "The detail behind the table. Paste the interesting failures into your",
-        "README — the ones that show something, not the ten easiest.",
+        "The detail behind the table.",
         "",
     ]
 
@@ -586,10 +577,9 @@ def write_report(rows, args):
     print(f"\n{'=' * 60}")
     print(f"Wrote {path.relative_to(config.ROOT)}")
     print(f"  auto-marked BROKE: {broke}")
-    print(f"  left for you:      {undecided}")
+    print(f"  left to judge:     {undecided}")
     print(f"{'=' * 60}")
-    print("\nNow pull your audit log for the run and paste ten entries into your")
-    print("README. Choose the ones that show the interesting failures.")
+    print("\nPull the audit log for the run:")
     print("\n  curl \"http://127.0.0.1:5000/log?limit=200\" > results/audit_extract.json")
 
 

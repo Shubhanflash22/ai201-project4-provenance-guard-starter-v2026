@@ -17,6 +17,5 @@ models/
 .DS_Store
 Thumbs.db
 
-# NOTE: logs/ and results/ are deliberately NOT ignored. Your audit log and
-# your attack runs are evidence, and they're part of what gets graded.
-# Commit them.
+# logs/ and results/ are deliberately NOT ignored: the audit log and the
+# attack runs are evidence and belong in the repo.

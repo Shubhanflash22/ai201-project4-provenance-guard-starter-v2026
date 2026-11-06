@@ -16,7 +16,7 @@ INPUTS = {
         "alarm, and my cat bolted under the couch like I had committed a "
         "crime. Third time this week. Not great."
     ),
-    # REPLACE this with a plain paragraph YOU wrote: short sentences, simple words.
+    # A plainly written human paragraph: short sentences, simple words.
     "plain human": (
         "I like my school. It is big. I have many friends. We play games at "
         "lunch. My teacher is nice. She helps me a lot. I want to go to college."

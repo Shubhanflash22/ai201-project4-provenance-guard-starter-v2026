@@ -296,7 +296,7 @@ def get_log():
 def main():
     print(f"Provenance Guard on http://{config.HOST}:{config.PORT}")
     print(f"  detector model:  {config.DETECTOR_MODEL}")
-    print(f"  rate limiting:   {'ON' if config.RATE_LIMITING_ENABLED else 'off (unit 8)'}")
+    print(f"  rate limiting:   {'ON' if config.RATE_LIMITING_ENABLED else 'off'}")
     print(f"  audit log:       {config.AUDIT_LOG}")
     print()
     print("Check it's alive:")
