@@ -681,7 +681,55 @@ Five criteria, three trials each, run with `python run_eval.py --label before` (
 
 **Criterion 4, appeal path** (produced by `run_appeals.py::one_trial`):
 
-**TODO: paste the criterion 4 output from `results/appeals_2026-11-04_1738_before.md` here. The original README still had the placeholder `PASTE_CRITERION_4_JSON_HERE`.**
+```json
+[
+  {
+    "item": 1,
+    "submit_status": 200,
+    "content_id": "b054afe7-0bc4-4bc5-991b-96c0b31f4c7b",
+    "appeal_status": 200,
+    "appeal_response_status": "under_review",
+    "in_log": true,
+    "passed": true
+  },
+  {
+    "item": 2,
+    "submit_status": 200,
+    "content_id": "c6589e32-ea0e-4d32-aa88-9c8fb58a79fc",
+    "appeal_status": 200,
+    "appeal_response_status": "under_review",
+    "in_log": true,
+    "passed": true
+  },
+  {
+    "item": 3,
+    "submit_status": 200,
+    "content_id": "fb8fb099-66b4-4b5c-b461-836cfb99d805",
+    "appeal_status": 200,
+    "appeal_response_status": "under_review",
+    "in_log": true,
+    "passed": true
+  },
+  {
+    "item": 4,
+    "submit_status": 200,
+    "content_id": "6c09d734-31ca-4ee4-bd17-6dbf32c360d9",
+    "appeal_status": 200,
+    "appeal_response_status": "under_review",
+    "in_log": true,
+    "passed": true
+  },
+  {
+    "item": 5,
+    "submit_status": 200,
+    "content_id": "c85754db-7002-41a1-9d12-75babd928dbb",
+    "appeal_status": 200,
+    "appeal_response_status": "under_review",
+    "in_log": true,
+    "passed": true
+  }
+]
+```
 
 **Criterion 5, bad input:**
 
